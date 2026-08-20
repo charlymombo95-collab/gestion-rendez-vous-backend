@@ -1,64 +1,25 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use App\Http\Controllers\Controller;
-use App\Models\Patient;
-use Illuminate\Http\Request;
-
-class PatientController extends Controller
+return new class extends Migration
 {
-    public function index()
+    public function up(): void
     {
-        return response()->json(Patient::all(), 200);
+        Schema::create('patients', function (Blueprint $table) {
+            $table->id();
+            $table->string('nom');
+            $table->string('email')->unique();
+            $table->string('password');
+            $table->string('telephone');
+            $table->timestamps();
+        });
     }
 
-    public function store(Request $request)
+    public function down(): void
     {
-        $validated = $request->validate([
-            'nom' => 'required|string|max:255',
-            'email' => 'required|string|email|unique:patients,email',
-            'password' => 'required|string|min:6',
-            'telephone' => 'required|string|max:20',
-        ]);
-
-        $validated['password'] = bcrypt($validated['password']);
-        $patient = Patient::create($validated);
-
-        return response()->json($patient, 201);
+        Schema::dropIfExists('patients');
     }
-
-    public function show($id)
-    {
-        $patient = Patient::findOrFail($id);
-        return response()->json($patient, 200);
-    }
-
-    public function update(Request $request, $id)
-    {
-        $patient = Patient::findOrFail($id);
-
-        $validated = $request->validate([
-            'nom' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|string|email|unique:patients,email,' . $id,
-            'password' => 'sometimes|required|string|min:6',
-            'telephone' => 'sometimes|required|string|max:20',
-        ]);
-
-        if (isset($validated['password'])) {
-            $validated['password'] = bcrypt($validated['password']);
-        }
-
-        $patient->update($validated);
-
-        return response()->json($patient, 200);
-    }
-
-    public function destroy($id)
-    {
-        $patient = Patient::findOrFail($id);
-        $patient->delete();
-
-        return response()->json(['message' => 'Patient supprimé avec succès.'], 200);
-    }
-}
+};
