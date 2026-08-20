@@ -3,47 +3,49 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Patient;
 use Illuminate\Http\Request;
 
 class PatientController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    
     public function index()
     {
-        //
+        return response()->json(Patient::all(), 200);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'nom' => 'required|string|max:255',
+            'email' => 'required|string|email|unique:patients',
+            'password' => 'required|string|min:6',
+            'telephone' => 'required|string',
+        ]);
+
+        $validated['password'] = bcrypt($validated['password']);
+        $patient = Patient::create($validated);
+
+        return response()->json($patient, 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show($id)
     {
-        //
+        $patient = Patient::findOrFail($id);
+        return response()->json($patient, 200);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        //
+        $patient = Patient::findOrFail($id);
+        $patient->update($request->all());
+        return response()->json($patient, 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+        Patient::destroy($id);
+        return response()->json(['message' => 'Patient supprimé'], 200);
     }
 }

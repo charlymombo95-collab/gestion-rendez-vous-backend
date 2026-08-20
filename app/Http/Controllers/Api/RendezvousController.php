@@ -3,47 +3,58 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Rendezvous;
 use Illuminate\Http\Request;
 
 class RendezvousController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+
     public function index()
     {
-        //
+        return response()->json(Rendezvous::with(['medecin', 'patient'])->get(), 200);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
+    
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'medecin_id' => 'required|exists:medecins,id',
+            'patient_id' => 'required|exists:patients,id',
+            'date' => 'required|date',
+            'heure' => 'required',
+            'statut' => 'in:en_attente,confirmé,annulé'
+        ]);
+
+        // Vérification de la disponibilité du médecin
+        $existant = Rendezvous::where('medecin_id', $request->medecin_id)
+            ->where('date', $request->date)
+            ->where('heure', $request->heure)
+            ->first();
+
+        if ($existant) {
+            return response()->json(['error' => 'Ce créneau est déjà pris pour ce médecin.'], 422);
+        }
+
+        $rendezvous = Rendezvous::create($validated);
+        return response()->json($rendezvous->load(['medecin', 'patient']), 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show($id)
     {
-        //
+        $rendezvous = Rendezvous::with(['medecin', 'patient'])->findOrFail($id);
+        return response()->json($rendezvous, 200);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        //
+        $rendezvous = Rendezvous::findOrFail($id);
+        $rendezvous->update($request->all());
+        return response()->json($rendezvous, 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+        Rendezvous::destroy($id);
+        return response()->json(['message' => 'Rendez-vous annulé/supprimé'], 200);
     }
 }
