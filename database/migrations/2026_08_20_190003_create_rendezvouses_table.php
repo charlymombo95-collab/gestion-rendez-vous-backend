@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
+
         Schema::create('rendezvouses', function (Blueprint $table) {
+
             $table->id();
-            $table->foreignId('patient_id')->constrained('patients')->onDelete('cascade');
             $table->foreignId('medecin_id')->constrained('medecins')->onDelete('cascade');
+            $table->foreignId('patient_id')->constrained('patients')->onDelete('cascade');
+            
             $table->date('date');
             $table->time('heure');
-            $table->enum('status', ['en attente', 'confirmé', 'annulé'])->default('en attente');
+            $table->string('statut')->default('en_attente');
             $table->timestamps();
-            //contrainte d'unicité pour éviter les doublons de rendez-vous pour le même patient et le même médecin à la même date et heure
-            $table->unique(['medecin_id', 'date', 'heure'],);
+
         });
     }
 
