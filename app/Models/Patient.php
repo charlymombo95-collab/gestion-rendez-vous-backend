@@ -2,15 +2,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Patient extends Model
 {
-    protected $fillable = ['nom', 'email', 'password', 'telephone'];
-    protected $hidden = ['password'];
+    use HasFactory;
 
-    public function rendezVous()
+    protected $fillable = [
+        'nom',
+        'email',
+        'password',
+        'telephone',
+    ];
+
+    protected $hidden = [
+        'password',
+    ];
+
+    /**
+     * Un patient a plusieurs rendez-vous
+     */
+    public function rendezVouses()
     {
-        return $this->hasMany(Rendezvous::class);
+        return $this->hasMany(Rendezvous::class, 'patient_id');
     }
 }
