@@ -1,8 +1,11 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\MedecinController;
+use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\RendezvousController;
+
+Route::apiResource('medecins', MedecinController::class);
+Route::apiResource('patients', PatientController::class);
+Route::apiResource('rendezvous', RendezvousController::class);
