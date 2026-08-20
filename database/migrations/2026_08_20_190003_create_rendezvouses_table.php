@@ -1,36 +1,89 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace App\Http\Controllers\Api;
 
-return new class extends Migration
+use App\Http\Controllers\Controller;
+use App\Models\Rendezvous;
+use Illuminate\Http\Request;
+
+class RendezvousController extends Controller
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function index()
     {
-
-        Schema::create('rendezvouses', function (Blueprint $table) {
-
-            $table->id();
-            $table->foreignId('medecin_id')->constrained('medecins')->onDelete('cascade');
-            $table->foreignId('patient_id')->constrained('patients')->onDelete('cascade');
-            
-            $table->date('date');
-            $table->time('heure');
-            $table->string('statut')->default('en_attente');
-            $table->timestamps();
-
-        });
+        return response()->json(Rendezvous::with(['medecin', 'patient'])->get(), 200);
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function store(Request $request)
     {
-        Schema::dropIfExists('rendezvouses');
+        $validated = $request->validate([
+            'medecin_id' => 'required|exists:medecins,id',
+            'patient_id' => 'required|exists:patients,id',
+            'date' => 'required|date',
+            'heure' => 'required',
+            'statut' => 'in:en_attente,confirmé,annulé'
+        ]);
+
+        $occupe = Rendezvous::where('medecin_id', $request->medecin_id)
+            ->where('date', $request->date)
+            ->where('heure', $request->heure)
+            ->exists();
+
+        if ($occupe) {
+            return response()->json([
+                'message' => 'Ce médecin a déjà un rendez-vous prévu à cette date et cette heure.'
+            ], 422);
+        }
+
+        $rendezvous = Rendezvous::create($validated);
+
+        return response()->json($rendezvous->load(['medecin', 'patient']), 201);
     }
-};
+
+    public function show($id)
+    {
+        $rendezvous = Rendezvous::with(['medecin', 'patient'])->findOrFail($id);
+        return response()->json($rendezvous, 200);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $rendezvous = Rendezvous::findOrFail($id);
+
+        $validated = $request->validate([
+            'medecin_id' => 'sometimes|required|exists:medecins,id',
+            'patient_id' => 'sometimes|required|exists:patients,id',
+            'date' => 'sometimes|required|date',
+            'heure' => 'sometimes|required',
+            'statut' => 'sometimes|in:en_attente,confirmé,annulé',
+        ]);
+
+        $medecinId = $request->input('medecin_id', $rendezvous->medecin_id);
+        $date = $request->input('date', $rendezvous->date);
+        $heure = $request->input('heure', $rendezvous->heure);
+
+        $occupe = Rendezvous::where('medecin_id', $medecinId)
+            ->where('date', $date)
+            ->where('heure', $heure)
+            ->where('id', '!=', $id)
+            ->exists();
+
+        if ($occupe) {
+            return response()->json([
+                'message' => 'Ce créneau est déjà réservé pour ce médecin.'
+            ], 422);
+        }
+
+        $rendezvous->update($validated);
+
+        return response()->json($rendezvous->load(['medecin', 'patient']), 200);
+    }
+
+    public function destroy($id)
+    {
+        $rendezvous = Rendezvous::findOrFail($id);
+        $rendezvous->delete();
+
+        return response()->json(['message' => 'Rendez-vous annulé et supprimé avec succès.'], 200);
+    }
+}
+
